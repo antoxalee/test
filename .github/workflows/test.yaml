@@ -35,11 +35,11 @@ jobs:
       - name: Install locally
         run: |
           /usr/bin/mkdir -p ./bin
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O ./bin/yq
+          /usr/bin/wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O ./bin/yq
           chmod +x ./bin/yq
           ./bin/yq --version
         env:
-          PATH: ./bin:$PATH
+          PATH: ./bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
       - name: Create custom umbrella chart with selected charts
         run: |
