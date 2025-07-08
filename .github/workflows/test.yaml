@@ -17,11 +17,11 @@ jobs:
         with:
           name: my-artifact
 
-      - name: Check file exists
+      - name: Validate file exists
         run: |
           if [ -f hello.txt ]; then
-            echo "Test passed: File exists."
+            echo "✅ File exists"
           else
-            echo "Test failed: File does not exist."
+            echo "❌ File does not exist"
             exit 1
           fi
