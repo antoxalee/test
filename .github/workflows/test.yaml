@@ -1,0 +1,24 @@
+name: Test
+
+on:
+  push:
+    branches: anton
+
+jobs:
+  test-job:
+    runs-on: self-hosted
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: my-artifact
+
+      - name: Check file exists
+        run: |
+          if [ -f hello.txt ]; then
+            echo "Test passed: File exists."
+          else
+            echo "Test failed: File does not exist."
+            exit 1
+          fi
