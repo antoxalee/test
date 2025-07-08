@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: anton
+  workflow_dispatch:
 
 jobs:
   build-job:
