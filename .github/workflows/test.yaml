@@ -8,10 +8,14 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: Download artifact from latest successful Build workflow
+        uses: dawidd6/action-download-artifact@v2
         with:
-          name: my-artifact
+          workflow: build.yml            # or "Build" if you used 'name:' in build.yml
+          workflow_conclusion: success
+          branch: main                   # optional but recommended
+          name: my-artifact              # must match what you uploaded
+          path: .                        # where to extract (current dir)
 
       - name: Validate file exists
         run: |
