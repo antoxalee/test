@@ -1,0 +1,24 @@
+name: Build
+
+on:
+  push:
+    branches: anton
+
+jobs:
+  build-job:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create folder and file
+        run: |
+          mkdir -p build_output
+          echo "Hello GitHub Actions" > build_output/hello.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-artifact
+          path: build_output/
