@@ -1,24 +1,105 @@
-name: Build
+name: Build Custom Umbrella Chart
 
 on:
-  push:
-    branches: anton
   workflow_dispatch:
+    inputs:
+      charts:
+        description: "Comma-separated list of charts to include"
+        required: true
+        default: "bootstrap,xplg-master"
+      release_name:
+        description: "Helm release name (e.g., umbrella-dev, umbrella-prod)"
+        required: true
+        default: "umbrella-dev"
+  #push:
+  #  branches:
+  #    - anton-helm-update
 
 jobs:
-  build-job:
+  build-umbrella:
     runs-on: self-hosted
+    env:
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Create file
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install yq locally
         run: |
-          mkdir -p build_output
-          echo "hi" > build_output/hello.txt
+          /usr/bin/mkdir -p ./bin
+          /usr/bin/wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O ./bin/yq
+          chmod +x ./bin/yq
+          ./bin/yq --version
+        env:
+          PATH: ./bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-      - name: Upload artifact
+      - name: Create custom umbrella chart with selected charts
+        run: |
+          set -e
+
+          # Handle defaults for push event (no inputs)
+          NAMESPACE="${{ inputs.namespace || 'xplg' }}"
+          CHART_LIST="${{ inputs.charts || 'bootstrap,xplg-master' }}"
+          RELEASE_NAME="${{ inputs.release_name || 'umbrella-dev' }}"
+
+          CHART_DIR="./xplg-helm/charts"
+          DEST_DIR="./xplg-helm/$RELEASE_NAME"
+          FULL_VALUES="./xplg-helm/umbrella/values.yaml"
+          DEST_VALUES="$DEST_DIR/values.yaml"
+
+          echo "📦 Building umbrella chart with charts: $CHART_LIST"
+
+          rm -rf "$DEST_DIR"
+          mkdir -p "$DEST_DIR/charts"
+          mkdir -p "$DEST_DIR/templates"
+
+          echo "apiVersion: v2" > "$DEST_DIR/Chart.yaml"
+          echo "name: $RELEASE_NAME" >> "$DEST_DIR/Chart.yaml"
+          echo "version: 0.1.0" >> "$DEST_DIR/Chart.yaml"
+          echo "dependencies:" >> "$DEST_DIR/Chart.yaml"
+
+          IFS=',' read -ra CHARTS <<< "$CHART_LIST"
+          for chart in "${CHARTS[@]}"; do
+            echo "👉 Including chart: $chart"
+            echo "  - name: $chart" >> "$DEST_DIR/Chart.yaml"
+            echo "    version: 0.1.0" >> "$DEST_DIR/Chart.yaml"
+            echo "    repository: file://../charts/$chart" >> "$DEST_DIR/Chart.yaml"
+          done
+
+          echo "" > "$DEST_VALUES"
+          for chart in "${CHARTS[@]}"; do
+            echo "🔍 Copying and injecting namespace for: $chart"
+            yq eval ".\"$chart\" |= (.namespace = \"$NAMESPACE\")" "$FULL_VALUES" \
+              | yq eval ".\"$chart\"" - \
+              | sed "s/^/  /" > tmp_chart_values.yaml
+            echo "$chart:" >> "$DEST_VALUES"
+            cat tmp_chart_values.yaml >> "$DEST_VALUES"
+            echo "" >> "$DEST_VALUES"
+            rm -f tmp_chart_values.yaml
+          done
+
+          helm dependency update "$DEST_DIR"
+
+      - name: Upload built umbrella chart as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: my-artifact
-          path: build_output/
+          name: ${{ inputs.release_name || 'umbrella-dev' }}
+          path: ./xplg-helm/${{ inputs.release_name || 'umbrella-dev' }}
+
+      - name: Show final Chart.yaml
+        run: cat ./xplg-helm/${{ inputs.release_name || 'umbrella-dev' }}/Chart.yaml
+
+      - name: Show final values.yaml
+        run: cat ./xplg-helm/${{ inputs.release_name || 'umbrella-dev' }}/values.yaml
+
+      - name: List chart directory
+        run: ls -lh ./xplg-helm/${{ inputs.release_name || 'umbrella-dev' }}
+
+      - name: Save chart to shared location
+        run: |
+          mkdir -p ${{ github.workspace }}/artifacts
+          cp -r ./xplg-helm/${{ inputs.release_name || 'umbrella-dev' }} ${{ github.workspace }}/artifacts/
