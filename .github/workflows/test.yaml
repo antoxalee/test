@@ -1,10 +1,16 @@
 name: Test
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build"]  # must match 'name' in deploy.yaml
+    types:
+      - completed
+#on:
+#  workflow_dispatch:
 
 jobs:
   test-job:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
 
     steps:
