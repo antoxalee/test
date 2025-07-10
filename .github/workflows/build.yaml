@@ -17,5 +17,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: test-file
-          path: test
+          name: my-artifact
+          path: hello.txt
