@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create file named "test"
-        run: echo "This is a test file" > test
+        run: echo "This is a test file" > hello.txt
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
