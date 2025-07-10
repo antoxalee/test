@@ -1,19 +1,32 @@
 name: Test
 
 on:
-  workflow_run:
-    workflows: ["Build"]  # must match 'name' in deploy.yaml
-    types:
-      - completed
-#on:
-#  workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
   test-job:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
 
     steps:
+      - name: Download build status artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: build.yaml           # or "Deploy" if you used name:
+          workflow_conclusion: success
+          branch: main
+          name: build-status
+          path: .
+
+      - name: Check if deployment was successful
+        id: check
+        run: |
+          if grep -q "build successful" status.txt; then
+            echo "✅ Build confirmed"
+          else
+            echo "❌ Build was not successful"
+            exit 1
+          fi
+    
       - name: Download artifact from latest successful Build workflow
         uses: dawidd6/action-download-artifact@v2
         with:
