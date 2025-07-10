@@ -14,6 +14,9 @@ jobs:
       - name: Create file named "test"
         run: echo "This is a test file" > hello.txt
 
+      - name: Force fail the job
+        run: exit 1
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
